@@ -79,13 +79,15 @@ if ticker:
             fig.add_trace(go.Scatter(x=df_valores['Date'],
                                      y=df_valores['Close'],
                                      name='Preço Fechamento',
-                                     line_color='Yellow'))
+                                     line_color='Yellow',
+                                     hovertemplate='%{x} <br> Valor: %{y:.2f}')) # Exibe o dia (x) e o valor com 2 casas decimais (y)
             fig.update_layout(xaxis=dict(showgrid=True), yaxis=dict(showgrid=True))
 
             fig.add_trace(go.Scatter(x=df_valores['Date'],
                                      y=df_valores['Open'],
                                      name='Preço Abertura',
-                                     line_color='green'))
+                                     line_color='green',
+                                     hovertemplate='%{x} <br> Valor: %{y:.2f}'))  # Exibe o dia (x) e o valor com 2 casas decimais (y)
             fig.update_layout(xaxis=dict(showgrid=True), yaxis=dict(showgrid=True))
 
             col5.plotly_chart(fig, use_container_width=True)
@@ -102,19 +104,22 @@ if ticker:
             fig_prophet.add_trace(go.Scatter(x=previsao['ds'],
                                              y=previsao['yhat'],
                                              name='Previsto',
-                                             line_color='blue'))
+                                             line_color='blue',
+                                             hovertemplate='%{x} <br> Valor: %{y:.2f}')) # Exibe o dia (x) e o valor com 2 casas decimais (y)
 
             fig_prophet.add_trace(go.Scatter(x=previsao['ds'],
                                              y=previsao['yhat_lower'],
                                              name='Limite Inferior',
                                              line=dict(dash='dot'),
-                                             line_color='red'))
+                                             line_color='red',
+                                             hovertemplate='%{x} <br> Valor: %{y:.2f}')) # Exibe o dia (x) e o valor com 2 casas decimais (y)
 
             fig_prophet.add_trace(go.Scatter(x=previsao['ds'],
                                              y=previsao['yhat_upper'],
                                              name='Limite Superior',
                                              line=dict(dash='dot'),
-                                             line_color='green'))
+                                             line_color='green',
+                                             hovertemplate='%{x} <br> Valor: %{y:.2f}')) # Exibe o dia (x) e o valor com 2 casas decimais (y)
 
             col7.plotly_chart(fig_prophet, use_container_width=True)
 
