@@ -2,26 +2,38 @@ import yfinance as yf
 import streamlit as st
 from PIL import Image
 from prophet import Prophet
+import plotly.express as px
 from plotly import graph_objects as go
 
 # Configuração da página
 st.set_page_config(page_title='Análise Financeira', layout='wide')
-st.title('Análise de ações financeiras')
+st.markdown(f""" <h1 style='text-align: center;'>Análise de ações financeiras</h1> """, unsafe_allow_html=True)
 
 # Sidebar
 with st.sidebar:
     # Logo da Loja
     logo = Image.open('bolsa.png')
     st.sidebar.image(logo, use_column_width=True, caption='Ações financeira')
+    st.header('', divider='rainbow')
 
-    st.header('Ticker da empresa:', divider='rainbow')
-    ticker = st.text_input(label='Insira o Ticker da empresa:')
+    st.info('Ticker da empresa: ', icon='🔢')
+    ticker = st.text_input(label='Insira o Ticker:')
+    st.header('', divider='rainbow')
 
-    st.header('Previsão:', divider='rainbow')
+    st.info('Previsão: ', icon='⏱')
     n_dias = st.slider('Dias de previsão', 30, 365)  # Slider para previsão de dias
 
 if ticker:
     try:
+        ticker_sa = f"{ticker}.SA"
+        # Verifica se o ticker sem .SA possui dados, se não possui tenta buscar com .SA
+        if yf.Ticker(ticker).history(period='1Y').empty:
+            # Verifica se o ticker com .SA possui dados
+            if yf.Ticker(ticker_sa).history(period='1Y').empty:
+                raise ValueError('Dados não encontrados para o ticker fornecido')
+            else:
+                ticker = ticker_sa
+
         # Obtendo os dados financeiros da empresa selecionada no período de 1 ano
         df = yf.Ticker(ticker).history(period='1Y').reset_index()
 
@@ -70,7 +82,7 @@ if ticker:
         # Tabela de valores das ações
         with col4:
             st.info('Tabela de valores das ações - ' + ticker, icon='📅')
-            st.dataframe(df_valores)
+            st.dataframe(df_valores[['Date', 'Open', 'Close']].sort_values('Date', ascending=False))
 
         # Gráfico dos valores das ações
         with col5:
@@ -80,7 +92,7 @@ if ticker:
                                      y=df_valores['Close'],
                                      name='Preço Fechamento',
                                      line_color='Yellow',
-                                     hovertemplate='%{x} <br> Valor: %{y:.2f}')) # Exibe o dia (x) e o valor com 2 casas decimais (y)
+                                     hovertemplate='%{x} <br> Valor: %{y:.2f}'))  # Exibe o dia (x) e o valor com 2 casas decimais (y)
             fig.update_layout(xaxis=dict(showgrid=True), yaxis=dict(showgrid=True))
 
             fig.add_trace(go.Scatter(x=df_valores['Date'],
@@ -91,6 +103,7 @@ if ticker:
             fig.update_layout(xaxis=dict(showgrid=True), yaxis=dict(showgrid=True))
 
             col5.plotly_chart(fig, use_container_width=True)
+
 
         # Tabela de Previsões
         with col6:
@@ -105,27 +118,57 @@ if ticker:
                                              y=previsao['yhat'],
                                              name='Previsto',
                                              line_color='blue',
-                                             hovertemplate='%{x} <br> Valor: %{y:.2f}')) # Exibe o dia (x) e o valor com 2 casas decimais (y)
+                                             hovertemplate='%{x} <br> Valor: %{y:.2f}'))  # Exibe o dia (x) e o valor com 2 casas decimais (y)
 
             fig_prophet.add_trace(go.Scatter(x=previsao['ds'],
                                              y=previsao['yhat_lower'],
                                              name='Limite Inferior',
                                              line=dict(dash='dot'),
                                              line_color='red',
-                                             hovertemplate='%{x} <br> Valor: %{y:.2f}')) # Exibe o dia (x) e o valor com 2 casas decimais (y)
+                                             hovertemplate='%{x} <br> Valor: %{y:.2f}'))  # Exibe o dia (x) e o valor com 2 casas decimais (y)
 
             fig_prophet.add_trace(go.Scatter(x=previsao['ds'],
                                              y=previsao['yhat_upper'],
                                              name='Limite Superior',
                                              line=dict(dash='dot'),
                                              line_color='green',
-                                             hovertemplate='%{x} <br> Valor: %{y:.2f}')) # Exibe o dia (x) e o valor com 2 casas decimais (y)
+                                             hovertemplate='%{x} <br> Valor: %{y:.2f}'))  # Exibe o dia (x) e o valor com 2 casas decimais (y)
 
             col7.plotly_chart(fig_prophet, use_container_width=True)
 
+        with col8:
+
+            st.info('Previsão com gráfico de barras e Linha', icon='📉')
+            # Criando o gráfico de barras
+            # Estilizando o gráfico de barras
+
+            fig_barras = px.bar(previsao,
+                                x=df_valores['Date'],
+                                y=df_valores['Close'],
+                                labels={'Close': 'Close'})
+            fig_barras.update_traces(marker_color='green', marker_line_color='green', marker_line_width=1.5,
+                                     opacity=0.8)
+            fig_barras.update_layout(xaxis_title='Data',
+                                     yaxis_title='Valor',
+                                     legend_title='Legendas',
+                                     font=dict(family='Arial', size=12),
+                                     xaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray'),
+                                     yaxis=dict(showgrid=True, gridwidth=1, gridcolor='lightgray')
+                                     )
+
+            # Criando a linha no gráfico
+            fig_barras.add_trace(go.Scatter(
+                x=previsao['ds'],
+                y=previsao['yhat'],
+                mode='lines',
+                name='Previsto',
+                line=dict(color='red', width=2),
+                hovertemplate='%{x} <br> Valor: %{y:.2f}'
+            ))
+
+            col8.plotly_chart(fig_barras, use_container_width=True)
+
+
 
     except Exception as e:
-        st.error(f"Ocorreu um erro: {e}")
-
-else:
-    st.warning('Por favor, insira o Ticker da empresa para começar a análise.')
+        st.error(f"Ocorreu um erro ao buscar os dados: {e}")
